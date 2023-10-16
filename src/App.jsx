@@ -7,12 +7,21 @@ import axios from 'axios';
 import { useRef } from 'react';
 
 import 'react-range-slider-input/dist/style.css';
+import { useEffect } from 'react';
 
 // const host = 'http://192.168.43.60:8878';
 const defaultHost = 'http://192.168.1.145:8877';
 
 const maxLeft = 40;
 const maxRight = 140;
+
+const KEY_W = 87
+const KEY_A = 65
+const KEY_S = 83
+const KEY_D = 68
+const KEY_UP = 38
+const KEY_DOWN = 40
+const KEY_SPACE = 32
 
 function App() {
   const prevSpeed = useRef(0);
@@ -26,8 +35,89 @@ function App() {
   const [invertMove, setInvertMove] = useState(false);
   const [spd, setSpd] = useState(4);
 
+  const [rightJoystickState, setRightJoystickState] = useState({ x: 0, y: 0, direction: 'FORWARD', distance: 0 });
+  const [leftJoystickState, setLeftJoystickState] = useState({ x: 0, y: 0, direction: 'LEFT', distance: 0 });
+
   const [speedNow, setSpeedNow] = useState(0)
   const [freq, setFreq] = useState(3500)
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keyup', handleKeyUp)
+
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (rightJoystickState.x === 0 && rightJoystickState.y === 0) {
+      return handleStop()
+    }
+    handleMove(rightJoystickState)
+  }, [rightJoystickState])
+
+  useEffect(() => {
+    if (leftJoystickState.x === 0 && leftJoystickState.y === 0) {
+      //return handleStopTurn()
+    }
+    handleTurn(leftJoystickState)
+  }, [leftJoystickState])
+
+  const handleKeyDown = (e) => {
+    switch (e.keyCode) {
+      case KEY_W:
+        console.log('maju');
+        setRightJoystickState({ x: 0, y: 1, direction: 'FORWARD', distance: 100 });
+        break;
+      case KEY_S:
+        console.log('mundur');
+        setRightJoystickState({ x: 0, y: -1, direction: 'BACKWARD', distance: 100 });
+        break;
+      case KEY_A:
+        console.log('kiri');
+        setLeftJoystickState({ x: -1, y: 0, direction: 'LEFT', distance: 100 });
+        break;
+      case KEY_D:
+        console.log('kanan');
+        setLeftJoystickState({ x: 1, y: 0, direction: 'RIGHT', distance: 100 });
+        break;
+      case KEY_SPACE:
+        console.log('stop');
+        setLeftJoystickState({ x: 0, y: 0, direction: 'RIGHT', distance: 0 });
+        setRightJoystickState({ x: 0, y: 0, direction: 'FORWARD', distance: 0 });
+        handleStop()
+        handleStopTurn()
+        break;
+    }
+
+
+  }
+
+  const handleKeyUp = (e) => {
+    switch (e.keyCode) {
+      case KEY_W:
+        console.log('maju stop');
+        setRightJoystickState({ x: 0, y: 0, direction: 'FORWARD', distance: 0 });
+        break;
+      case KEY_S:
+        console.log('mundur stop');
+        setRightJoystickState({ x: 0, y: 0, direction: 'BACKWARD', distance: 0 });
+        break;
+      case KEY_A:
+        console.log('kiri stop');
+        setLeftJoystickState({ x: 0, y: 0, direction: 'LEFT', distance: 0 });
+        break;
+      case KEY_D:
+        console.log('kanan stop');
+        setLeftJoystickState({ x: 0, y: 0, direction: 'RIGHT', distance: 0 });
+        break;
+    }
+
+  }
+
 
   const handleMove = (e) => {
     const distance = parseInt(e.distance);
@@ -91,9 +181,10 @@ function App() {
       }
     }
 
-    let deg = 90;
+    let deg = 0;
     deg = distance < 40 ? degs[0] : degs[1];
     deg = distance < 70 ? deg : degs[2];
+    deg = distance === 0 ? 90 : deg;
 
     if (deg === prevDeg.current) {
       return
@@ -164,6 +255,7 @@ function App() {
       }}>
         <div className="" style={{ display: 'flex', alignItems: 'start' }}>
           <Joystick
+            pos={leftJoystickState}
             size={150}
             stickSize={100}
             sticky={false}
@@ -191,6 +283,7 @@ function App() {
             <span>{speeds.indexOf(Math.abs(speedNow)) + 1}</span>
           </div>
           <Joystick
+            pos={rightJoystickState}
             size={150}
             stickSize={70}
             sticky={false}
